@@ -36,7 +36,7 @@ export class Dealer extends Gamer {
     const firstAceIndex: number = tempHand.indexOf('A');
     tempHand.splice(firstAceIndex, 1);
     let currentScore: number =
-      this._hand.reduce((acc: number, curr: string) => {
+      tempHand.reduce((acc: number, curr: string) => {
         const cardValue: number = parseInt(curr, 10);
         return acc + (isNaN(cardValue)
           ? curr === 'A' ? 1 : 10

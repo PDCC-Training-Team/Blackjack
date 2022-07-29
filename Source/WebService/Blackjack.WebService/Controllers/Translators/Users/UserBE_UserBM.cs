@@ -8,7 +8,11 @@ namespace Blackjack.Web.App.WebService.Controllers.Translators.Users
     {
         public UserBE Convert(UserBM source, UserBE destination, ResolutionContext context)
         {
-            throw new NotImplementedException();
+            UserBE result = destination ?? new();
+            result.UserID = source.UserID;
+            result.Username = source.Username;
+            result.Balance = source.Balance;
+            return result;
         }
         public UserBM Convert(UserBE source, UserBM destination, ResolutionContext context)
         {

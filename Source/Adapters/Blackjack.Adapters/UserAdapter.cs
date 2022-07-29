@@ -23,7 +23,22 @@ public interface IUserAdapter
     /// </summary>
     /// <param name="username"></param>
     /// <returns></returns>
-    Task<UserBE> GetUsers(string username);
+    Task<UserBE> GetUserBySoundex(string username);
+
+    /// <summary>
+    /// Retrieves a user from the Users table based on the UserID.
+    /// Returns null if the user does not exist.
+    /// </summary>
+    /// <param name="userID"></param>
+    /// <returns></returns>
+    Task<UserBE> GetUserByID(int userID);
+
+    /// <summary>
+    /// Updates a user in the Users table.
+    /// </summary>
+    /// <param name="user"></param>
+    /// <returns></returns>
+    Task<UserBE> UpdateUser(UserBE user);
 }
 /// <inheritdoc cref="IUserAdapter"/>
 public class UserAdapter : IUserAdapter
@@ -39,19 +54,37 @@ public class UserAdapter : IUserAdapter
     public async Task CreateUser(string username)
     {
         string soundex = CreateSoundex(username);
-        UserBE usersBySoundex = await GetUsers(username);
-        if (usersBySoundex != null)
+        UserBE userBE = await GetUserBySoundex(username);
+        if (userBE != null)
         {
             throw new WebException(HttpStatusCode.BadRequest, "Username already exists.");
         }
         await _userFacade.CreateUser(username, soundex, balance: 500);
     }
 
-    public async Task<UserBE> GetUsers(string username)
+    public async Task<UserBE> GetUserBySoundex(string username)
     {
         string soundex = CreateSoundex(username);
-        List<UserBE> usersBySoundex = await _userFacade.GetUsers(soundex);
+        List<UserBE> usersBySoundex = await _userFacade.GetUserBySoundex(soundex);
         return usersBySoundex?.SingleOrDefault(user => user.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public async Task<UserBE> GetUserByID(int userID)
+    {
+        return await _userFacade.GetUserByID(userID);
+    }
+
+    public async Task<UserBE> UpdateUser(UserBE user)
+    {
+        UserBE dbUser = await GetUserByID(user.UserID);
+        if (dbUser == null)
+        {
+            throw new WebException(HttpStatusCode.BadRequest, "User does not exist.");
+        }
+        dbUser.Username = user.Username;
+        dbUser.Balance = user.Balance;
+        await _userFacade.UpdateUser(dbUser);
+        return dbUser;
     }
 
     private string CreateSoundex(string username)

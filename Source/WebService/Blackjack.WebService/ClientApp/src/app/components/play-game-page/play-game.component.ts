@@ -95,7 +95,7 @@ export class PlayGameComponent implements OnInit {
   * Begins the game by allowing players to enter their name and how many decks to play with.
   * Also determines if either the player, dealer, or both have black jack.
   */
-  public startGame(): void {
+  public async startGame(): Promise<void> {
     if (isNaN(this.deckQty) || this.deckQty < 1) {
       alert(`${this.deckQty} is not a valid amount of decks, please try again.`);
       return;
@@ -108,15 +108,15 @@ export class PlayGameComponent implements OnInit {
 
     /*Checks for blackjacks. If anyone does, game automatically ends.*/
     if (this.player.hasBlackJack() && this.dealer.hasBlackJack()) {
-      this.resolveBlackjack(BlackjackOutcomes.BothBlackjack, () => this.pushOutcome());
+      this.resolveBlackjack(BlackjackOutcomes.BothBlackjack, async () => this.pushOutcome());
       return;
     }
     else if (this.player.hasBlackJack() && !this.dealer.hasBlackJack()) {
-      this.resolveBlackjack(BlackjackOutcomes.PlayerBlackjack, () => this.winOutcome());
+      this.resolveBlackjack(BlackjackOutcomes.PlayerBlackjack, async () => this.winOutcome());
       return;
     }
     else if (!this.player.hasBlackJack() && this.dealer.hasBlackJack()) {
-      this.resolveBlackjack(BlackjackOutcomes.DealerBlackjack, () => this.loseOutcome());
+      this.resolveBlackjack(BlackjackOutcomes.DealerBlackjack, async () => this.loseOutcome());
       return;
     }
     this.nextMove = BlackjackOutcomes.PlayerChoice;
@@ -126,12 +126,12 @@ export class PlayGameComponent implements OnInit {
   /**
    * Gives the player another card but automatically ends play if the player busts. 
    */
-  public hit(): void {
+  public async hit(): Promise<void> {
     this.player.updateHand(this.deck.deal(1));
     if (this.player.hasBusted) {
       this.revealDealer();
       this.nextMove = BlackjackOutcomes.DealerWin;
-      this.loseOutcome();
+      await this.loseOutcome();
       this.isPlayAgainHidden = false;
       this.isGameButtonHidden = true;
     }
@@ -142,22 +142,22 @@ export class PlayGameComponent implements OnInit {
    * Ends the players turn, reveals dealer's cards, hides game buttons, and plays
    * the dealer's hand over two second intervals.
    */
-  public stay(): void {
+  public async stay(): Promise<void> {
     this.revealDealer();
-    const intervalID = setInterval(() => {
+    const intervalID = setInterval(async () => {
       if (this.dealer.score > 17 || (this.dealer.score === 17 && !this.dealer.hasSoft17()) || this.dealer.hasBusted) {
         clearInterval(intervalID);
         if (this.dealer.score < this.player.score || this.dealer.hasBusted) {
           this.nextMove = BlackjackOutcomes.PlayerWin;
-          this.winOutcome();
+          await this.winOutcome();
         }
         else if (this.dealer.score > this.player.score) {
           this.nextMove = BlackjackOutcomes.DealerWin;
-          this.loseOutcome();
+          await this.loseOutcome();
         }
         else {
           this.nextMove = BlackjackOutcomes.Push;
-          this.pushOutcome();
+          await this.pushOutcome();
         }
         this.isPlayAgainHidden = false;
         return;
@@ -184,10 +184,10 @@ export class PlayGameComponent implements OnInit {
    * @param nextMove
    * @param outcomeFunc
    */
-  public resolveBlackjack(nextMove: BlackjackOutcomes, outcomeFunc: () => void): void {
+  public async resolveBlackjack(nextMove: BlackjackOutcomes, outcomeFunc: () => void): Promise<void> {
     this.revealDealer();
     this.nextMove = nextMove;
-    outcomeFunc();
+    await outcomeFunc();
     this.isPlayAgainHidden = false;
   }
 
@@ -200,28 +200,35 @@ export class PlayGameComponent implements OnInit {
     this.isGameButtonHidden = true;
   }
 
-  /*TO DO: implement update user endpoint*/
-  public winOutcome(): void {
+  /**
+   * Resolves any situation in which the player wins a hand of blackjack
+   */
+  public async winOutcome(): Promise<void> {
     this.user.balance += (this.wager * 2);
     this.wager = 0;
+    await this._userApi.updateUser(this.user);
   }
 
-  /**TO DO: Implement update user endpoint */
-  public loseOutcome(): void {
+  /**
+   * Resolves any situation in which the player loses a hand of blackjack
+   */
+    public async loseOutcome(): Promise<void> {
     this.wager = 0;
+    await this._userApi.updateUser(this.user);
   }
 
-  /**TO DO: Implement update user endpoint */
-  public pushOutcome(): void {
+  /**
+   * Resolves any situation in which the player ties in a hand of blackjack
+   */
+  public async pushOutcome(): Promise<void> {
     this.user.balance += this.wager;
     this.wager = 0;
+    await this._userApi.updateUser(this.user);    
   }
 
   public async ngOnInit(): Promise<void> {
     this.user = new UserDto();
-    this.user.balance = 500;
-    this.user.username = 'Test';
-    //this.user = await this._userApi.getUser('test');
+    this.user = await this._userApi.getUserByID(1);
     this.player.name = this.user.username;
   }
 }

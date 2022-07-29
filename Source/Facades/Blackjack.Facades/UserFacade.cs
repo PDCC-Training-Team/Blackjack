@@ -13,15 +13,32 @@ public interface IUserFacade
     /// already exist.
     /// </summary>
     /// <param name="username"></param>
+    /// <param name="soundex"></param>
+    /// <param name="balance"></param>
     /// <returns></returns>
     Task CreateUser(string username, string soundex, int balance);
     /// <summary>
-    /// Retrieves a user from the Users table. Returns null if
-    /// the user does not exist.
+    /// Retrieves a list of users from the Users table based on Soundex.
+    /// Returns null if the user does not exist.
     /// </summary>
-    /// <param name="username"></param>
+    /// <param name="soundex"></param>
     /// <returns></returns>
-    Task<List<UserBE>> GetUsers(string username);
+    Task<List<UserBE>> GetUserBySoundex(string soundex);
+
+    /// <summary>
+    /// Retrieves a user from the Users table based on the UserID.
+    /// Returns null if the user does not exist.
+    /// </summary>
+    /// <param name="userID"></param>
+    /// <returns></returns>
+    Task<UserBE> GetUserByID(int userID);
+
+    /// <summary>
+    /// Updates a user in the Users table.
+    /// </summary>
+    /// <param name="userBE"></param>
+    /// <returns></returns>
+    Task UpdateUser(UserBE userBE);
 }
 
 /// <inheritdoc cref="IUserFacade"/>
@@ -47,10 +64,22 @@ public class UserFacade : IUserFacade
         await _dataService.UserRepo.CreateUser(user);
     }
 
-    public async Task<List<UserBE>> GetUsers(string soundex)
+    public async Task<List<UserBE>> GetUserBySoundex(string soundex)
     {
         List<UserEntity> userEntities = await _dataService.UserRepo.GetUsersBySoundex(soundex);
         List<UserBE> UserBEs = userEntities?.Select(userEntity => _mapper.Map<UserBE>(userEntity)).ToList();
         return UserBEs;
+    }
+
+    public async Task<UserBE> GetUserByID(int userID)
+    {
+        UserEntity userEntity = await _dataService.UserRepo.GetUserByID(userID);
+        return _mapper.Map<UserBE>(userEntity);
+    }
+
+    public async Task UpdateUser(UserBE userBE)
+    {
+        UserEntity userEntity = _mapper.Map<UserEntity>(userBE);
+        await _dataService.UserRepo.UpdateUser(userEntity);
     }
 }

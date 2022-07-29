@@ -13,7 +13,11 @@ namespace Blackjack.Web.App.Facades.Translators.User
     {
         public UserEntity Convert(UserBE source, UserEntity destination, ResolutionContext context)
         {
-            throw new NotImplementedException();
+            UserEntity result = destination ?? new();
+            result.UserID = source.UserID;
+            result.Balance = source.Balance;
+            result.Username = source.Username;
+            return result;
         }
 
         public UserBE Convert(UserEntity source, UserBE destination, ResolutionContext context)

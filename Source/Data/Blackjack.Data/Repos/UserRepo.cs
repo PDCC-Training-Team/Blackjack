@@ -10,17 +10,33 @@ public interface IUserRepo
     /// Adds the user to the Users table if that user does not
     /// already exist.
     /// </summary>
-    /// <param name="username"></param>
+    /// <param name="user"></param>
     /// <returns></returns>
     Task CreateUser(UserEntity user);
 
     /// <summary>
-    /// Retrieves a user from the Users table. Returns null if
-    /// the user does not exist.
+    /// Retrieves a list of users from the Users table based on Soundex.
+    /// Returns null if the user does not exist.
     /// </summary>
-    /// <param name="username"></param>
+    /// <param name="soundex"></param>
     /// <returns></returns>
     Task<List<UserEntity>> GetUsersBySoundex(string soundex);
+
+    /// <summary>
+    /// Updates a user in the Users table. Returns null if that
+    /// user does not exist.
+    /// </summary>
+    /// <param name="userEntity"></param>
+    /// <returns></returns>
+    Task UpdateUser(UserEntity userEntity);
+
+    /// <summary>
+    /// Retrieves a user from the Users table based on the UserID.
+    /// Returns null if the user does not exist.
+    /// </summary>
+    /// <param name="userID"></param>
+    /// <returns></returns>
+    Task<UserEntity> GetUserByID(int userID);
 }
 
 /// <inheritdoc cref="IUserRepo"/>
@@ -68,11 +84,58 @@ public class UserRepo : BaseRepo, IUserRepo
             }
         };
 
-        DataTable queryData = await base.Get(StoredProcedures.GetUser, parameters);
+        DataTable queryData = await base.Get(StoredProcedures.GetUserBySoundex, parameters);
 
         List<UserEntity> userEntities = CreateUserEntity(queryData);
 
         return userEntities;
+    }
+
+    public async Task<UserEntity> GetUserByID(int userID)
+    {
+        List<SqlParameter> parameters = new List<SqlParameter>()
+        {
+            new SqlParameter()
+            {
+                ParameterName = $"@{nameof(UserEntity.UserID)}",
+                SqlDbType = SqlDbType.VarChar,
+                Value = userID
+            }
+        };
+
+        DataTable queryData = await base.Get(StoredProcedures.GetUserByID, parameters);
+
+        List<UserEntity> userEntities = CreateUserEntity(queryData);
+
+        return userEntities.SingleOrDefault();
+    }
+
+    public async Task UpdateUser(UserEntity user)
+    {
+        List<SqlParameter> parameters = new List<SqlParameter>()
+            {
+                new SqlParameter()
+                {
+                    ParameterName = $"@{nameof(user.UserID)}",
+                    SqlDbType = System.Data.SqlDbType.Int,
+                    Value = user.UserID
+                },
+                new SqlParameter()
+                {
+                    ParameterName = $"@{nameof(user.Username)}",
+                    SqlDbType = System.Data.SqlDbType.VarChar,
+                    Value = user.Username
+                },
+                new SqlParameter()
+                {
+                    ParameterName = $"@{nameof(user.Balance)}",
+                    SqlDbType = System.Data.SqlDbType.VarChar,
+                    Value = user.Balance
+                }
+            };
+
+        DataTable queryData =
+            await base.Update(StoredProcedures.UpdateUser, parameters);
     }
     private List<UserEntity> CreateUserEntity(DataTable userDataTable)
     {
@@ -97,7 +160,9 @@ public class UserRepo : BaseRepo, IUserRepo
     private struct StoredProcedures
     {
         public const string CreateUser = "user.usp_INSERT_User";
-        public const string GetUser = "user.usp_SELECT_Users_BySoundex";
+        public const string GetUserBySoundex = "user.usp_SELECT_Users_BySoundex";
+        public const string UpdateUser = "user.usp_UPDATE_User_ByID";
+        public const string GetUserByID = "user.usp_SELECT_Users_ByID";
     }
 }
 
